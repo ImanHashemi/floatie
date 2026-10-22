@@ -1,0 +1,85 @@
+floatie 🛟 — coding agents and your real stack in a local microVM.
+Host: run from your workspace directory (workspace.yml); no ancestor search.
+  floatie ui [port]                    optional local web UI; detached server (default 8787)
+
+Daily commands
+  floatie attach [worker]              attach main or a live worker terminal; no agent launch
+  floatie orchestrate [codex|claude]    start/reuse root agent, focus its pane and attach (default Codex)
+  floatie worker <name> [repo]          create with all clones or one repo; reconnect exact saved scope
+  floatie workers                      saved workers + live session state; excludes root; no VM start
+  floatie start                        boot existing VM + apply firewall; does not resume agents
+  floatie stop                         whole VM shutdown, not suspension; disk persists, processes end
+  floatie reload                       apply workspace files/tools/skills + retry Claude plugins
+  floatie help                         this product help (also bare floatie, --help or -h)
+
+Setup (host, in order)
+  just install                        in tool checkout: install wrapper symlink onto PATH
+  floatie create                      create/start + reconcile provisioning, identity, secrets, plugins,
+                                      missing clones, context and firewall
+  floatie codex-setup                  after create: install/check Codex + sandbox; apply config/firewall
+  floatie attach                      then inside VM: codex login --device-auth; codex
+                                      or: claude → /login; on host: floatie reload to retry plugins
+                                      OAuth MCPs need separate login (codex mcp login <server-name>)
+
+Worker maintenance
+  floatie worker-rm <name> [true|false] remove preserved worker: hook, terminal, stack, worktrees/owned branch
+                                      default false; true bypasses only a failing workspace hook
+  • Refuses dirty, unpublished or unknown Git state, including flags hiding tracked changes.
+    Hook/terminal/stack effects can remain after failure; no rollback. Built-in teardown
+    omits -v; workspace hooks may delete named volumes. Unrelated branches are retained.
+  • New names: lowercase letter/digit first, then [a-z0-9_-], at most 63 characters.
+    Reserved: main, stack, workspace, all. Saved reconnect never adds repos or resets branches;
+    a different explicit scope fails, even with a live terminal. After partial creation,
+    inspect created/missing repos; reconnect the surviving set or guarded-remove and create fresh.
+
+Destructive VM maintenance
+  floatie destroy [true|false]         delete VM + disk after push guard (default false)
+  floatie rebuild [true|false]         same guard, then delete + create from saved configuration
+  • true overrides the VM push guard (data loss), unlike worker-rm's hook-only bypass.
+    A stopped VM may be started for the guard and left running if the guard refuses deletion.
+
+Repair / UI diagnostics
+  floatie firewall [off]               apply saved allowlist; exact off temporarily allows all egress
+  floatie signing-key                  print VM SSH signing PUBLIC key and registration instructions
+  floatie ui-stop                      stop this workspace's detached host UI server, not the VM
+  floatie ui-logs                      follow its log; Ctrl-C stops watching
+  floatie ui-fg [port]                 run UI in foreground for debugging (default 8787)
+  • reload needs a running VM: context/MCPs, stack/, guest tools and shared skills; Codex config
+    if installed; retry configured Claude plugins. It does not apply secrets, Git identity,
+    repo cloning, CPU/memory or firewall. create reconciles identity/secrets and missing clones;
+    fresh shells/processes load updated secrets. Rebuild for changed VM resources/template.
+
+Agent automation
+  floatie agent-start <target> [codex|claude]  headless start/reuse (default Codex); main also accepted
+                                      new Codex agents have full VM access; existing agents are reused unchanged
+  floatie agent-list                   discover process/pane JSON, including manual launches
+  floatie agent-read <target> [--pane %ID]     read terminal tail + cursor
+  floatie agent-send <target> [--pane %ID]     literal prompt on stdin through EOF (1–65536 UTF-8 bytes)
+  floatie agent-wait <target> [--pane %ID] [--cursor <cursor>] [--seconds <n>]
+  floatie agent-wait <target> --target <other> [--target <other>]… [--cursor <multi_cursor>] [--seconds <n>]
+                                      bounded output/process observation, not task completion
+  printf '%s\n' 'Report progress.' | floatie agent-send review --pane %42
+  floatie agent-send review --pane %42 < prompt.txt
+  floatie agent-wait review --pane %42 --cursor "$cursor" --seconds 10
+  floatie agent-wait review --target other --cursor "$multi_cursor" --seconds 10
+  • --pane is single-target only; omit it for multi-target waits. Use observed pane IDs.
+    Set cursor from read/wait for that same target/pane; set multi_cursor from the
+    corresponding previous wait (same targets/order). Omit --cursor for the first snapshot.
+    Whitespace-only prompts and control characters except newline/tab are rejected.
+    No hidden supervision scheduler.
+
+Inside the VM (guest; no Lima or host floatie wrapper)
+  just --justfile "$HOME/.local/share/floatie/agents.just"  # guest recipe list
+  just --justfile "$HOME/.local/share/floatie/agents.just" worker-create review api web
+  tmux attach-session -t '=review'    # guest reconnect to a live terminal; Ctrl-b d detaches
+  • Guest agent recipes share the stdin/cursor flags above. Explicit legacy uppercase and
+    64-character agent targets remain accessible; the new-worker naming rule is separate.
+
+Advanced references
+  floatie --list                      raw public recipe list; hidden named default remains callable
+  floatie --show <recipe>              recipe source; floatie --usage <recipe> for its arguments
+  floatie --version                   just runner version (not a Floatie release); just --help for options
+  • Only zero args or exact help/--help/-h select product help; other argv/stdin/CWD pass through.
+    Copy/run host commands from the intended workspace; terminal commands read current config.
+    Under 10 GiB free on the host Lima volume, create/start/reload/worker refuse; attach warns.
+    FLOATIE_SKIP_DISK_CHECK=1 skips this guard. See README.md for effects and configuration.

@@ -1,0 +1,18 @@
+{
+  "workspace": {"name": "demo", "dir": "/ws"},
+  "vm": {"status": "Running", "cpus": 2, "memoryGiB": 2.0, "diskPct": 10, "observedAt": {"secondsAgo": 0}, "error": null},
+  "firewall": {"mode": "on", "permissiveConfigured": false, "egress": [], "observedAt": {"secondsAgo": 0}, "error": null},
+  "availableRepos": ["api"],
+  "inventory": {"inventoryKnown": true, "observedAt": {"secondsAgo": 0}, "error": null, "repositoryObservedAt": {"secondsAgo": 0}, "repositoryError": null, "sessionObservedAt": {"secondsAgo": 0}, "sessionError": null, "countsObservedAt": null, "countsError": "Git inspection failed"},
+  "environments": [
+    {"name": "workspace", "kind": "workspace", "session": "main", "sessionLive": false, "scopeKnown": true, "managementReason": "Root workspace cannot be removed",
+     "repos": [{"repo": "api", "branch": "main", "clean": true, "uncommitted": 0, "unpushed": 0, "path": "/home/demo/work/api", "observedAt": {"secondsAgo": 0}}]},
+    {"name": "beta", "kind": "worker", "session": "beta", "sessionLive": false, "scopeKnown": true, "managementReason": null,
+     "repos": [{"repo": "api", "branch": "worker/beta", "clean": false, "uncommitted": 3, "unpushed": 0, "path": "/home/demo/work/.worktrees/beta/api", "observedAt": {"secondsAgo": 0}}]},
+    {"name": "empty", "kind": "worker", "session": "empty", "sessionLive": false, "scopeKnown": false, "managementReason": "Empty saved scope; inspect before reconnecting", "repos": []},
+    {"name": "legacy", "kind": "unknown", "session": "legacy", "sessionLive": true, "scopeKnown": false, "managementReason": "Unrecognized session; inspect manually", "repos": []},
+    {"name": "damaged", "kind": "worker", "session": "damaged", "sessionLive": false, "scopeKnown": false, "managementReason": "Saved Git identity unavailable; inspect before managing", "repos": [{"repo": "api", "path": "/home/demo/work/.worktrees/damaged/api", "branch": null, "clean": null, "uncommitted": null, "unpushed": null, "error": "Git inspection failed", "observedAt": null}]}
+  ],
+  "secrets": [{"key": "GITHUB_TOKEN", "state": "set"}],
+  "config": {"repos": ["github.com/myorg/api"], "cpus": 2, "memoryGiB": 2.0, "plugins": [], "egress": [], "permissive": false, "gitUserName": "", "gitUserEmail": ""}
+}

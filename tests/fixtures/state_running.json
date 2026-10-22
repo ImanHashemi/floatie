@@ -1,0 +1,21 @@
+{
+  "workspace": {"name": "demo", "dir": "/ws"},
+  "vm": {"status": "Running", "cpus": 4, "memoryGiB": 4.0, "diskPct": 31, "observedAt": {"secondsAgo": 0}, "error": null},
+  "firewall": {"mode": "on", "permissiveConfigured": false, "egress": ["api.langfuse.com"], "observedAt": {"secondsAgo": 0}, "error": null},
+  "availableRepos": ["api", "web"],
+  "inventory": {"inventoryKnown": true, "observedAt": {"secondsAgo": 0}, "error": null, "repositoryObservedAt": {"secondsAgo": 0}, "repositoryError": null, "sessionObservedAt": {"secondsAgo": 0}, "sessionError": null, "countsObservedAt": {"secondsAgo": 0}, "countsError": null},
+  "environments": [
+    {"name": "workspace", "kind": "workspace", "session": "main", "sessionLive": true, "scopeKnown": true, "managementReason": "Root workspace cannot be removed",
+     "repos": [
+       {"repo": "api", "branch": "main", "clean": true, "uncommitted": 0, "unpushed": 0, "path": "/home/demo/work/api", "observedAt": {"secondsAgo": 0}},
+       {"repo": "web", "branch": "main", "clean": true, "uncommitted": 0, "unpushed": 0, "path": "/home/demo/work/web", "observedAt": {"secondsAgo": 0}}
+     ]},
+    {"name": "alpha", "kind": "worker", "session": "alpha", "sessionLive": true, "scopeKnown": true, "managementReason": null,
+     "repos": [
+       {"repo": "api", "branch": "worker/alpha", "clean": false, "uncommitted": 0, "unpushed": 2, "path": "/home/demo/work/.worktrees/alpha/api", "observedAt": {"secondsAgo": 0}},
+       {"repo": "web", "branch": "worker/alpha", "clean": true, "uncommitted": 0, "unpushed": 0, "path": "/home/demo/work/.worktrees/alpha/web", "observedAt": {"secondsAgo": 0}}
+     ]}
+  ],
+  "secrets": [{"key": "GITHUB_TOKEN", "state": "set"}],
+  "config": {"repos": ["github.com/myorg/api"], "cpus": 4, "memoryGiB": 4.0, "plugins": [], "egress": ["api.langfuse.com"], "permissive": false, "gitUserName": "Jane", "gitUserEmail": "jane@x.com"}
+}

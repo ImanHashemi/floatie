@@ -1,0 +1,11 @@
+# Secrets — never commit these.
+# Create .env.secrets from .env.secrets.example and fill in real values.
+.env.secrets
+
+# Brainstorming visual-companion scratch
+.superpowers/
+
+# Python test artifacts (UI contributor dependencies are locked under ui/)
+__pycache__/
+*.pyc
+.pytest_cache/

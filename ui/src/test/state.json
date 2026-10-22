@@ -1,0 +1,84 @@
+{
+  "workspace": {
+    "name": "demo",
+    "dir": "/workspaces/demo"
+  },
+  "identity": {
+    "matches": true,
+    "error": null
+  },
+  "vm": {
+    "status": "Running",
+    "observedAt": "2026-10-14T12:00:00.000Z",
+    "error": null
+  },
+  "firewall": {
+    "mode": "on",
+    "observedAt": "2026-10-14T12:00:00.000Z",
+    "error": null,
+    "permissiveConfigured": false,
+    "egress": []
+  },
+  "inventory": {
+    "inventoryKnown": true,
+    "observedAt": "2026-10-14T12:00:00.000Z",
+    "error": null,
+    "repositoryObservedAt": "2026-10-14T12:00:00.000Z",
+    "repositoryError": null,
+    "sessionObservedAt": "2026-10-14T12:00:00.000Z",
+    "sessionError": null,
+    "countsObservedAt": "2026-10-14T12:00:00.000Z",
+    "countsError": null
+  },
+  "availableRepos": [
+    "api",
+    "sdk"
+  ],
+  "environments": [
+    {
+      "name": "alpha",
+      "kind": "worker",
+      "session": "alpha",
+      "sessionLive": false,
+      "scopeKnown": true,
+      "managementReason": null,
+      "repos": [
+        {
+          "repo": "api",
+          "path": "/work/alpha/api",
+          "branch": "worker/alpha",
+          "clean": true,
+          "uncommitted": 0,
+          "unpushed": 0,
+          "observedAt": "2026-10-14T12:00:00.000Z",
+          "error": null
+        },
+        {
+          "repo": "sdk",
+          "path": "/work/alpha/sdk",
+          "branch": "worker/alpha",
+          "clean": true,
+          "uncommitted": 0,
+          "unpushed": 0,
+          "observedAt": "2026-10-14T12:00:00.000Z",
+          "error": null
+        }
+      ]
+    }
+  ],
+  "config": {
+    "name": "demo",
+    "cpus": 4,
+    "memoryGiB": 4,
+    "permissive": false,
+    "repos": [],
+    "plugins": [],
+    "egress": [],
+    "gitUserName": null,
+    "gitUserEmail": null
+  },
+  "configRevision": "revision-1",
+  "configError": null,
+  "secrets": [],
+  "generatedAt": "2026-10-14T12:00:00.000Z"
+}

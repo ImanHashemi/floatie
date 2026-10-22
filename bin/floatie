@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# floatie — self-locating wrapper. Resolves the floatie repo through this
+# script's own (possibly symlinked) path, then runs the floatie justfile with
+# the working directory set to wherever you invoked floatie from (your workspace).
+set -euo pipefail
+
+# Resolve this script's real path, following symlinks. Portable (no `readlink -f`,
+# which is GNU-only; macOS /usr/bin/readlink historically lacks it).
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+HERE="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"  # the floatie repo
+
+if ! command -v just >/dev/null 2>&1; then
+  echo "floatie: 'just' is not installed or not on PATH. Install it: https://github.com/casey/just" >&2
+  exit 127
+fi
+
+# Only these exact forms are product help. Compound runner options and recipe
+# arguments (including their stdin and caller CWD) pass through untouched.
+if [ "$#" -eq 0 ] || { [ "$#" -eq 1 ] && [[ "$1" == help || "$1" == --help || "$1" == -h ]]; }; then
+  set -- help
+fi
+
+exec just --justfile "$HERE/justfile" -d "$PWD" "$@"

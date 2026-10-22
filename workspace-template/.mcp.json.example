@@ -1,0 +1,46 @@
+{
+  "_comment": [
+    "This is an EXAMPLE only. Copy it to .mcp.json in your workspace and edit it.",
+    ".mcp.json is hand-authored by you and committed to YOUR workspace repo.",
+    "Floatie uses your workspace .mcp.json as input; edit server definitions here.",
+    "",
+    "Claude Code reads .mcp.json natively at project scope.",
+    "Values like ${LINEAR_API_KEY} are expanded from the environment — set them",
+    "in .env.secrets (gitignored). Never put real tokens in .mcp.json itself.",
+    "",
+    "Server transport types (support depends on the installed harness):",
+    "  1. stdio   — npx / uvx server; runs as a child process in the VM",
+    "  2. http    — streamable HTTP; token/Basic header OR interactive OAuth (e.g. Linear)",
+    "  3. sse     — legacy Server-Sent Events endpoint (many servers have moved to http)",
+    "",
+    "NOTE: the JSON field is \"type\" (not \"transport\"). \"--transport\" is only the",
+    "claude mcp add CLI flag — the committed .mcp.json always uses \"type\"."
+  ],
+  "mcpServers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/work"],
+      "env": {}
+    },
+    "my-python-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["my-python-mcp-package"],
+      "env": {
+        "MY_SERVICE_API_KEY": "${MY_SERVICE_API_KEY}"
+      }
+    },
+    "my-token-mcp": {
+      "type": "http",
+      "url": "https://mcp.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MY_SERVICE_API_KEY}"
+      }
+    },
+    "linear": {
+      "type": "http",
+      "url": "https://mcp.linear.app/mcp"
+    }
+  }
+}

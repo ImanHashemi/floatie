@@ -1,0 +1,86 @@
+# floatie workspace VM — Lima/vz, Docker inside.
+# CPU/memory are driven by workspace.yml via --cpus/--memory flags in the justfile.
+# The cpus/memory values below are inert template fallbacks; edit workspace.yml instead.
+# Based on Lima's docker template (template://docker).
+
+minimumLimaVersion: 2.1.0
+
+vmType: vz
+cpus: 4    # fallback only — overridden by justfile from workspace.yml
+memory: 4GiB  # fallback only — overridden by justfile from workspace.yml
+
+# containerd is managed by Docker, not by Lima.
+containerd:
+  system: false
+  user: false
+
+images:
+  # Ubuntu 24.04 LTS (noble) — aarch64 first (Apple Silicon), x86_64 fallback.
+  - location: "https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-arm64.img"
+    arch: aarch64
+  - location: "https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-amd64.img"
+    arch: x86_64
+
+mounts:
+  # Host home is mounted read-only — seed only (decision #7).
+  - location: "~"
+    writable: false
+
+provision:
+  # Fix host.docker.internal resolution inside containers.
+  - mode: system
+    script: |
+      #!/bin/sh
+      sed -i 's/host.lima.internal.*/host.lima.internal host.docker.internal/' /etc/hosts
+
+  # Install Docker (rootless) — idempotent.
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      command -v docker >/dev/null 2>&1 && exit 0
+      export DEBIAN_FRONTEND=noninteractive
+      curl -fsSL https://get.docker.com | sh
+      systemctl disable --now docker.service docker.socket containerd.service containerd.socket || true
+      systemctl mask docker.service docker.socket containerd.service containerd.socket || true
+      apt-get install -y uidmap dbus-user-session
+
+  # Install `just` (a common task runner — floatie is just-based, and workspace stacks often are too) — idempotent.
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      command -v just >/dev/null 2>&1 && exit 0
+      curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      systemctl --user start dbus
+      dockerd-rootless-setuptool.sh install
+      docker context use rootless
+
+probes:
+  - script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      if ! timeout 30s bash -c "until command -v docker >/dev/null 2>&1; do sleep 3; done"; then
+        echo >&2 "docker is not installed yet"
+        exit 1
+      fi
+      if ! timeout 30s bash -c "until pgrep rootlesskit; do sleep 3; done"; then
+        echo >&2 "rootlesskit (used by rootless docker) is not running"
+        exit 1
+      fi
+    hint: See "/var/log/cloud-init-output.log" in the guest
+
+hostResolver:
+  hosts:
+    host.docker.internal: host.lima.internal
+
+portForwards:
+  # Expose the rootless Docker socket to the host (optional — useful for host docker CLI).
+  - guestSocket: "/run/user/{{.UID}}/docker.sock"
+    hostSocket: "{{.Dir}}/sock/docker.sock"
+

@@ -1,0 +1,10 @@
+{
+  "workspace": {"name": "demo", "dir": "/ws"},
+  "vm": {"status": "absent", "observedAt": {"secondsAgo": 0}, "error": null},
+  "firewall": {"mode": "unknown", "permissiveConfigured": false, "egress": [], "observedAt": null, "error": "Firewall observation unavailable until the VM is running"},
+  "availableRepos": [],
+  "inventory": {"inventoryKnown": false, "observedAt": null, "error": "Inventory unavailable until the VM is running", "repositoryObservedAt": null, "repositoryError": "Repository inventory unavailable", "sessionObservedAt": null, "sessionError": "Session observation unavailable", "countsObservedAt": null, "countsError": "Repository counts unavailable"},
+  "environments": [],
+  "secrets": [{"key": "GITHUB_TOKEN", "state": "placeholder"}],
+  "config": {"repos": [], "cpus": 4, "memoryGiB": 4.0, "plugins": [], "egress": [], "permissive": false, "gitUserName": "", "gitUserEmail": ""}
+}

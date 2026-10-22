@@ -1,0 +1,72 @@
+name: floatie
+cpus: 4
+memory: 4GiB
+
+# Git identity — author name and email embedded in every commit.
+# REQUIRED: set both fields before running `just create`.
+# The email MUST be a verified email on your GitHub account; GitHub shows
+# "Unverified" on commits whose author email is not verified on the account.
+# This email is also used in the SSH signing key's allowed-signers file.
+#
+# Git identity values are passed as literal shell arguments, including quotes.
+# Use the supported single-line plain-scalar format; do not add YAML quoting.
+#
+# Example:
+#   git_user_name: Jane Smith
+#   git_user_email: jane@example.com
+git_user_name:
+git_user_email:
+
+# repos: list of repositories to clone onto VM disk at ~/work/<repo-name>.
+# Shorthand "github.com/owner/repo" is normalized to https://github.com/owner/repo.git.
+# Full URLs (https://, ssh://) and local paths are passed verbatim to git clone.
+# Private-repo auth: set GITHUB_TOKEN in .env.secrets (see .env.secrets.example).
+# Cloning is idempotent: existing directories are skipped.
+#
+# repos:
+#   - github.com/myorg/my-api
+#   - github.com/myorg/my-web
+repos: []
+
+# egress: extra domains to allowlist beyond the built-in base list.
+# Base list already covers: Anthropic, GitHub, npm, PyPI, Docker registries,
+# Ubuntu apt, and the CloudFront Docker CDN layer backend.
+# Add one domain per line for any service your agents need to reach
+# (e.g. third-party APIs, OAuth MCP endpoints, telemetry, custom registries).
+# Note: OAuth MCPs need BOTH the MCP endpoint AND the auth domain allowlisted
+# (e.g. mcp.linear.app AND linear.app for the OAuth callback redirect).
+#
+# egress:
+#   - api.langfuse.com           # observability
+#   - mcp.linear.app             # Linear MCP endpoint
+#   - linear.app                 # Linear OAuth auth domain
+egress: []
+
+# plugins: Claude Code plugins to install at provision time.
+# Two entry kinds (same block-list syntax as repos: / egress:):
+#
+#   owner/repo  (no @ sign)          — add a plugin marketplace:
+#                                       claude plugin marketplace add <entry>
+#   plugin-name@marketplace-name     — install a plugin from an added marketplace:
+#                                       claude plugin install <entry>
+#
+# Block list only — one "- entry" per line. Inline flow form [a, b] is not
+# parsed (same restriction as repos: and egress:).
+#
+# Install order matters: add a marketplace before installing plugins from it.
+# Auth: plugins use the cached ~/.claude login (floatie attach → claude → /login,
+# once per VM). If not yet logged in, installs are skipped with a WARN — run
+# `floatie reload` after /login to install them. Idempotent: already-added
+# marketplaces and already-installed plugins are skipped on re-run.
+#
+# plugins:
+#   - anthropics/claude-plugins-official   # add the official marketplace
+#   - some-plugin@claude-plugins-official  # install a plugin from it
+plugins: []
+
+# permissive: set to true to disable the egress firewall entirely (allow-all).
+# Use for low-sensitivity work or when debugging domain blocks.
+# WARNING: this removes the exfiltration barrier — all outbound traffic is allowed.
+# Save alone does not apply it. On the host, run `floatie firewall` to apply
+# the configured policy. `floatie firewall off` is a temporary allow-all override.
+permissive: false

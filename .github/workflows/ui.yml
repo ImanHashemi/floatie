@@ -1,0 +1,73 @@
+name: UI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ui-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: ui/.node-version
+          package-manager-cache: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: ui/.python-version
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version-file: ui/pyproject.toml
+          enable-cache: false
+      - name: Install the recipe runner
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/just-1.46.0-x86_64-unknown-linux-musl.tar.gz"
+          curl --fail --location --proto '=https' --tlsv1.2 https://github.com/casey/just/releases/download/1.46.0/just-1.46.0-x86_64-unknown-linux-musl.tar.gz --output "$archive"
+          printf '%s  %s\n' 79966e6e353f535ee7d1c6221641bcc8e3381c55b0d0a6dc6e54b34f9db36eaa "$archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/floatie-test-bin"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/floatie-test-bin" just
+          printf '%s\n' "$RUNNER_TEMP/floatie-test-bin" >> "$GITHUB_PATH"
+      - name: Check core test prerequisites
+        shell: bash
+        run: |
+          git --version
+          bash --version
+          just --version
+      - name: Install locked contributor dependencies
+        run: |
+          npm --prefix ui ci --ignore-scripts
+          uv sync --locked --project ui
+          uv run --locked --project ui python -m playwright install --with-deps chromium
+      - name: Provision the separate compatibility interpreter
+        shell: bash
+        run: |
+          uv python install "$(cat ui/.python39-version)"
+          compatibility_python="$(uv python find --no-project --managed-python --no-python-downloads "$(cat ui/.python39-version)")"
+          "$compatibility_python" -c 'import pathlib, sys; expected = pathlib.Path("ui/.python39-version").read_text().strip(); actual = ".".join(map(str, sys.version_info[:3])); assert sys.version_info[:2] == (3, 9) and actual == expected, (actual, expected); print(actual)'
+          printf 'FLOATIE_TEST_PYTHON39=%s\n' "$compatibility_python" >> "$GITHUB_ENV"
+      - name: Check types, behavior and shipped artifacts
+        run: |
+          npm --prefix ui run typecheck
+          npm --prefix ui test
+          npm --prefix ui run check-dist
+      - name: Test the complete Python suite, including browser coverage
+        run: uv run --locked --project ui python -m pytest -q --junitxml=python-tests.xml
+      - name: Reject skipped required coverage
+        run: |
+          uv run --locked --project ui python - <<'PY'
+          import xml.etree.ElementTree as ET
+          report = 'python-tests.xml'
+          root = ET.parse(report).getroot()
+          skipped = root.findall('.//testcase/skipped')
+          assert not skipped, f'{report}: {len(skipped)} required tests were skipped'
+          PY
