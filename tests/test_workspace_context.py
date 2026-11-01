@@ -1,5 +1,6 @@
 """Exercise placement recipes with real writers/tar and an isolated Lima boundary."""
 import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -40,6 +41,16 @@ with open(os.environ['TEST_CALLS'], 'a') as log:
     log.write(json.dumps({'argv': args, 'stdin_bytes': len(data)}) + '\n')
 if args == ['shell', 'sample-vm', '--', 'bash', '-lc', 'command -v codex >/dev/null']:
     sys.exit(1)
+guest_tmp = pathlib.Path(os.environ['TEST_GUEST']) / 'mcp-transfer.json'
+if args == ['shell', 'sample-vm', '--', 'rm', '-f', '/tmp/floatie-mcp.json']:
+    sys.exit(subprocess.run(['rm', '-f', str(guest_tmp)], timeout=15).returncode)
+if args == ['shell', 'sample-vm', '--', 'bash', '-s', '--', '/tmp/floatie-mcp.json']:
+    env = {'PATH': os.environ['PATH'], 'HOME': os.environ['TEST_GUEST']}
+    sys.exit(subprocess.run(['bash', '-s', '--', str(guest_tmp)], input=data,
+                            env=env, timeout=15).returncode)
+if args == ['shell', 'sample-vm', '--', 'bash', '-c', 'cat > /tmp/floatie-mcp.json']:
+    sys.exit(subprocess.run(['bash', '-c', 'cat > "$1"', '--', str(guest_tmp)],
+                            input=data, timeout=15).returncode)
 if args[:5] != ['shell', 'sample-vm', '--', 'bash', '-c']:
     sys.exit('unhandled VM operation: ' + repr(args))
 script = args[5]
@@ -95,6 +106,73 @@ os.execv(os.environ['TEST_REAL_CAT'], ['cat', *sys.argv[1:]])
 
     return SimpleNamespace(workspace=workspace, guest=guest, run=run, log=log,
                            archives=archives)
+
+
+def test_vm_mcp_placement_uses_dedicated_source(placed_context):
+    p = placed_context
+    original_personal = {'type': 'http', 'url': 'https://personal.example/mcp'}
+    (p.guest / '.claude.json').write_text(json.dumps({'mcpServers': {'personal': original_personal}}))
+    (p.workspace / '.floatie-mcp.json').write_text(json.dumps({'mcpServers': {
+        'vm-only': {'type': 'http', 'url': 'https://vm.example/mcp'}}}))
+    result = p.run()
+    assert result.returncode == 0, result.stderr
+    guest_config = json.loads((p.guest / '.claude.json').read_text())
+    assert guest_config['mcpServers']['vm-only']['url'] == 'https://vm.example/mcp'
+    assert guest_config['mcpServers']['personal'] == original_personal
+    assert not (p.guest / 'work/.mcp.json').exists()
+
+
+def test_vm_mcp_placement_ignores_project_source(placed_context):
+    p = placed_context
+    project_source = p.workspace / '.mcp.json'
+    original_project_bytes = json.dumps({'mcpServers': {
+        'project-only': {'type': 'http', 'url': 'https://host.example/mcp'},
+        'vm-only': {'type': 'http', 'url': 'https://host.example/mcp'}}}).encode()
+    project_source.write_bytes(original_project_bytes)
+    (p.workspace / '.floatie-mcp.json').write_text(json.dumps({'mcpServers': {
+        'vm-only': {'type': 'http', 'url': 'https://vm.example/mcp'}}}))
+    result = p.run()
+    assert result.returncode == 0, result.stderr
+    guest_config = json.loads((p.guest / '.claude.json').read_text())
+    assert 'project-only' not in guest_config['mcpServers']
+    assert guest_config['mcpServers']['vm-only']['url'] == 'https://vm.example/mcp'
+    assert project_source.read_bytes() == original_project_bytes
+
+
+@pytest.mark.parametrize('source_case', ['missing', 'empty', 'project_only', 'both'])
+def test_vm_mcp_placement_source_matrix(placed_context, source_case):
+    p = placed_context
+    personal = {'type': 'http', 'url': 'https://personal.example/mcp'}
+    existing = {'mcpServers': {'personal': personal, 'previous': personal},
+                'oauthAccount': {'synthetic': 'preserved'}}
+    (p.guest / '.claude.json').write_text(json.dumps(existing))
+    if source_case in ('project_only', 'both'):
+        (p.workspace / '.mcp.json').write_text(json.dumps({'mcpServers': {
+            'project-only': {'type': 'http', 'url': 'https://host.example/mcp'}}}))
+    if source_case in ('empty', 'both'):
+        servers = {} if source_case == 'empty' else {
+            'vm-only': {'type': 'http', 'url': 'https://vm.example/mcp',
+                        'headers': {'X-Literal': '$(touch content-injected)'}}}
+        (p.workspace / '.floatie-mcp.json').write_text(json.dumps({'mcpServers': servers}))
+    first = None
+    for _ in range(2):
+        result = p.run()
+        assert result.returncode == 0, result.stderr
+        current = json.loads((p.guest / '.claude.json').read_text())
+        if first is not None:
+            assert current == first
+        first = current
+    assert current['oauthAccount'] == existing['oauthAccount']
+    assert current['mcpServers']['personal'] == personal
+    assert current['mcpServers']['previous'] == personal
+    assert 'project-only' not in current['mcpServers']
+    if source_case == 'both':
+        assert current['mcpServers']['vm-only'] == servers['vm-only']
+    else:
+        assert current == existing
+    assert not (p.guest / 'work/.mcp.json').exists()
+    assert not (p.guest / 'mcp-transfer.json').exists()
+    assert not list(p.workspace.parent.rglob('*injected'))
 
 
 def test_agents_and_claude_place_without_codex(placed_context):

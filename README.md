@@ -30,6 +30,8 @@ Add the installed wrapper directory (default `~/.local/bin`) to PATH. Edit
 `workspace.yml` with a unique VM name, Git identity and repositories. Edit
 `AGENTS.md` with repository roles and verification commands, and configure only
 needed credentials in `.env.secrets`. All example names are placeholders.
+Optional VM integrations use `.floatie-mcp.json` (copy the matching starter
+example). Native Claude project `.mcp.json` is separate and is ignored by Floatie.
 
 ```sh
 # Host, from the workspace directory:

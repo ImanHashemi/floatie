@@ -13,6 +13,19 @@ codex = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(codex)
 
 
+def test_codex_uses_dedicated_source(tmp_path, monkeypatch):
+    target = tmp_path / 'codex'
+    monkeypatch.setenv('CODEX_HOME', str(target))
+    monkeypatch.setattr(codex.sys, 'argv', ['apply-codex.py', str(tmp_path)])
+    for filename, servers in [('.floatie-mcp.json', {'vm-only': {'type': 'http', 'url': 'https://vm.example/mcp'}}),
+                              ('.mcp.json', {'project-only': {'type': 'http', 'url': 'https://host.example/mcp'}})]:
+        (tmp_path / filename).write_text(json.dumps({'mcpServers': servers}))
+    codex.main()
+    config = tomllib.loads((target / 'config.toml').read_text())
+    assert config['mcp_servers']['vm-only']['url'] == 'https://vm.example/mcp'
+    assert 'project-only' not in config['mcp_servers']
+
+
 def test_mcp_reload_preserves_settings_and_replaces_managed_servers(monkeypatch):
     monkeypatch.setenv('BASIC_TOKEN', 'secret-value')
     source = {'mcpServers': {
@@ -63,7 +76,8 @@ def test_apply_preserves_auth_and_personal_guidance(tmp_path, monkeypatch, custo
     workspace.mkdir()
     (workspace / 'AGENTS.md').write_text('Workspace instructions')
     (workspace / 'CLAUDE.md').write_text('Legacy instructions')
-    (workspace / '.mcp.json').write_text(json.dumps({'mcpServers': {}}))
+    (workspace / '.floatie-mcp.json').write_text(json.dumps({'mcpServers': {
+        'vm-only': {'type': 'http', 'url': 'https://vm.example/mcp'}}}))
     monkeypatch.setattr(Path, 'home', lambda: guest)
     monkeypatch.setattr(codex.sys, 'argv', ['apply-codex.py', str(workspace)])
     codex.main()
@@ -74,9 +88,43 @@ def test_apply_preserves_auth_and_personal_guidance(tmp_path, monkeypatch, custo
     assert guidance.count('Workspace instructions') == 1
     assert 'Legacy instructions' not in guidance
     assert stat.S_IMODE((target / 'config.toml').stat().st_mode) == 0o600
+    config = tomllib.loads((target / 'config.toml').read_text())
+    assert config['mcp_servers']['vm-only']['url'] == 'https://vm.example/mcp'
     assert (default / 'sentinel').read_text() == 'keep default state'
     if custom_home:
         assert set(p.name for p in default.iterdir()) == {'sentinel'}
+
+
+@pytest.mark.parametrize('source_case', ['missing', 'empty', 'project_only', 'both'])
+def test_codex_mcp_source_matrix(tmp_path, monkeypatch, source_case):
+    workspace = tmp_path / "workspace 'quoted' $(touch path-injected)"
+    workspace.mkdir()
+    target = tmp_path / 'codex'
+    target.mkdir()
+    monkeypatch.setenv('CODEX_HOME', str(target))
+    monkeypatch.setattr(codex.sys, 'argv', ['apply-codex.py', str(workspace)])
+    personal = '[mcp_servers.personal]\nurl = "https://personal.example/mcp"\n'
+    original = codex.render({'mcpServers': {'previous': {
+        'type': 'http', 'url': 'https://old.example/mcp'}}}, personal)
+    (target / 'config.toml').write_text(original)
+    if source_case in ('project_only', 'both'):
+        (workspace / '.mcp.json').write_text(json.dumps({'mcpServers': {
+            'project-only': {'type': 'http', 'url': 'https://host.example/mcp'}}}))
+    if source_case in ('empty', 'both'):
+        servers = {} if source_case == 'empty' else {
+            'vm-only': {'type': 'http', 'url': 'https://vm.example/mcp',
+                        'headers': {'X-Literal': '$(touch content-injected)'}}}
+        (workspace / '.floatie-mcp.json').write_text(json.dumps({'mcpServers': servers}))
+    codex.main()
+    first = tomllib.loads((target / 'config.toml').read_text())
+    codex.main()
+    assert tomllib.loads((target / 'config.toml').read_text()) == first
+    assert first['mcp_servers']['personal']['url'] == 'https://personal.example/mcp'
+    assert set(first['mcp_servers']) == ({'personal', 'vm-only'} if source_case == 'both' else {'personal'})
+    if source_case == 'both':
+        assert first['mcp_servers']['vm-only']['url'] == 'https://vm.example/mcp'
+        assert first['mcp_servers']['vm-only']['http_headers']['X-Literal'] == '$(touch content-injected)'
+    assert not list(tmp_path.rglob('*injected'))
 
 
 def test_prefixed_header_resolves_at_connection_without_persisting_secret(monkeypatch):

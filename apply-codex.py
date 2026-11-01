@@ -130,7 +130,7 @@ def main():
     workspace = Path(sys.argv[1])
     target = Path(os.environ.get('CODEX_HOME') or Path.home() / '.codex')
     config = target / 'config.toml'
-    source = json.loads((workspace / '.mcp.json').read_text()) if (workspace / '.mcp.json').exists() else {}
+    source = json.loads((workspace / '.floatie-mcp.json').read_text()) if (workspace / '.floatie-mcp.json').exists() else {}
     result = render(source, config.read_text() if config.exists() else '')
     guidance = workspace / 'AGENTS.md'
     if not guidance.exists():

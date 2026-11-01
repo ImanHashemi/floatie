@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+from urllib.parse import urlsplit
 
 import pytest
 from playwright.sync_api import expect
@@ -16,7 +17,7 @@ from test_worker_rm import make_workspace, make_stubs, run_worker_rm, branches
 from test_worker_scope import boundary, saved_worker
 from test_worker_init_refresh import make_origin_and_clone, run_init, _git
 from workspace_fixtures import workspace_fixture
-from ui_browser_helpers import SECTIONS, refresh as explicit_refresh
+from ui_browser_helpers import SECTIONS, delay_observation, refresh as explicit_refresh
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = os.environ.get('TASK11_EVIDENCE_DIR')
@@ -253,6 +254,113 @@ def key_settings(page, section):
     expect(page.get_by_role('heading', name=SECTIONS[section], exact=True)).to_be_visible()
 
 
+def capture_browser_errors(page):
+    """Ignore only an obsolete observation's navigation cancellation."""
+    errors = []
+    pending_reads = {}
+    route = urlsplit(page.url).fragment
+    generation = 0
+
+    def navigated(frame):
+        nonlocal route, generation
+        if frame != page.main_frame:
+            return
+        current = urlsplit(frame.url).fragment
+        if current != route:
+            route = current
+            generation += 1
+
+    def started(request):
+        url = urlsplit(request.url)
+        origin = urlsplit(page.url)
+        same_origin = (url.scheme, url.netloc) == (origin.scheme, origin.netloc)
+        read = (request.method == 'GET' and url.path in ('/api/state', '/api/base-domains')) or (
+            request.method == 'POST' and url.path == '/api/agents'
+            and request.post_data_json == {'action': 'list'})
+        if same_origin and read:
+            pending_reads[request] = generation
+
+    def failed(request):
+        started_generation = pending_reads.pop(request, None)
+        obsolete = started_generation is not None and started_generation < generation
+        if not (obsolete and request.failure == 'net::ERR_ABORTED'):
+            errors.append(request.url.split('?')[0] + ': ' + str(request.failure))
+
+    page.on('framenavigated', navigated)
+    page.on('request', started)
+    page.on('requestfinished', lambda request: pending_reads.pop(request, None))
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
+    page.on('requestfailed', failed)
+    return errors
+
+
+@pytest.mark.parametrize('capture_before_load', [False, True])
+def test_browser_error_capture_accepts_navigation_cancelled_read(agent_page, capture_before_load):
+    page = agent_page.context.browser.new_page() if capture_before_load else agent_page
+    errors = capture_browser_errors(page)
+    if capture_before_load:
+        assert page.url == 'about:blank'
+        page.goto(agent_page.url)
+    open_settings(page, 'resources')
+    observe(page)
+    with delay_observation(page) as pending:
+        with page.expect_request(lambda request: request.url.endswith('/api/state')):
+            page.get_by_role('button', name='Refresh', exact=True).click()
+        assert pending.route is not None
+        with page.expect_event('requestfailed') as failed:
+            navigate(page, 'Workspace')
+            pending.release()
+    assert failed.value.url.endswith('/api/state')
+    assert failed.value.failure == 'net::ERR_ABORTED'
+    observe(page)
+    expect(page.get_by_role('status', name='Refresh status')).to_have_text('Refreshed.')
+    assert not errors, errors
+
+
+@pytest.mark.parametrize('endpoint,method,payload,navigation,failure', [
+    ('state', 'GET', None, False, 'aborted'),
+    ('state', 'GET', None, 'before-request', 'aborted'),
+    ('unrelated', 'GET', None, True, 'aborted'),
+    ('agents', 'POST', {'action': 'start'}, True, 'aborted'),
+    ('state', 'GET', None, False, 'connectionfailed'),
+    ('state', 'GET', None, True, 'connectionfailed'),
+])
+def test_browser_error_capture_retains_request_failures(
+        agent_page, endpoint, method, payload, navigation, failure):
+    page = agent_page
+    open_settings(page, 'resources')
+    observe(page)
+    errors = capture_browser_errors(page)
+    pending = []
+    # Only this explicitly tagged browser fetch is intercepted. Application reads
+    # still reach the real synthetic server, including after navigation.
+    pattern = '**/api/' + endpoint + '?capture-regression'
+    def hold(route):
+        pending.append(route)
+        page.evaluate("console.debug('capture regression held')")
+    page.route(pattern, hold)
+    try:
+        if navigation == 'before-request':
+            navigate(page, 'Workspace')
+            idle(page)
+        with page.expect_console_message(predicate=lambda message: message.text == 'capture regression held'):
+            page.evaluate("""({endpoint,method,payload}) => {
+                void fetch('/api/' + endpoint + '?capture-regression', {
+                    method, body: payload === null ? undefined : JSON.stringify(payload),
+                }).catch(() => {});
+            }""", {'endpoint': endpoint, 'method': method, 'payload': payload})
+        assert len(pending) == 1
+        if navigation is True:
+            navigate(page, 'Workspace')
+        with page.expect_event('requestfailed', predicate=lambda request: request.url.endswith('?capture-regression')) as failed:
+            pending[0].abort(failure)
+        assert failed.value.failure == 'net::ERR_' + ('ABORTED' if failure == 'aborted' else 'CONNECTION_FAILED')
+        assert failed.value.url.split('?')[0] + ': ' + failed.value.failure in errors
+    finally:
+        page.unroute(pattern)
+
+
 @pytest.mark.parametrize('layout', ['desktop', 'narrow', 'zoom'])
 @pytest.mark.parametrize('theme', ['light', 'dark'])
 def test_rendered_surfaces_with_verified_browser_zoom(agent_page, tmp_path, layout, theme):
@@ -266,10 +374,7 @@ def test_rendered_surfaces_with_verified_browser_zoom(agent_page, tmp_path, layo
         worker = context.service_workers[0] if context.service_workers else context.wait_for_event('serviceworker')
         page = context.pages[0]
         page.set_default_timeout(2000)
-        errors = []
-        page.on('pageerror', lambda error: errors.append(str(error)))
-        page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
-        page.on('requestfailed', lambda request: errors.append(request.url.split('?')[0] + ': ' + str(request.failure)))
+        errors = capture_browser_errors(page)
         page.emulate_media(color_scheme=theme, reduced_motion='reduce')
         state, agents = clean_state()
         def route(route):

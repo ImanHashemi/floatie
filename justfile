@@ -281,7 +281,7 @@ attach worker="":
     fi
 
 # Place optional workspace AGENTS.md and CLAUDE.md → ~/work/, and
-# .mcp.json's mcpServers → user scope (~/.claude.json). Private: called by
+# .floatie-mcp.json's mcpServers → user scope (~/.claude.json). Private: called by
 # `create` and `reload`. Missing inputs leave existing guidance untouched.
 _place-context:
     #!/usr/bin/env bash
@@ -315,14 +315,14 @@ _place-context:
         fi
     done
 
-    if [ -f "$WSDIR/.mcp.json" ]; then
-        echo "==> applying .mcp.json at user scope in the VM"
+    if [ -f "$WSDIR/.floatie-mcp.json" ]; then
+        echo "==> applying .floatie-mcp.json at user scope in the VM"
         # Copy the file in first (CRLF-stripped), then run apply-mcp.sh (stdin = script).
-        tr -d '\r' < "$WSDIR/.mcp.json" | limactl shell "$NAME" -- bash -c 'cat > /tmp/floatie-mcp.json'
+        tr -d '\r' < "$WSDIR/.floatie-mcp.json" | limactl shell "$NAME" -- bash -c 'cat > /tmp/floatie-mcp.json'
         limactl shell "$NAME" -- bash -s -- /tmp/floatie-mcp.json < "$REPO/apply-mcp.sh"
         limactl shell "$NAME" -- rm -f /tmp/floatie-mcp.json
     else
-        echo "==> no .mcp.json in workspace — skipping MCP apply"
+        echo "==> no .floatie-mcp.json in workspace — skipping MCP apply"
     fi
 
     if [ -d "$WSDIR/.claude/skills" ]; then

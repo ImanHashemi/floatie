@@ -1,12 +1,12 @@
 {
   "_comment": [
-    "This is an EXAMPLE only. Copy it to .mcp.json in your workspace and edit it.",
-    ".mcp.json is hand-authored by you and committed to YOUR workspace repo.",
-    "Floatie uses your workspace .mcp.json as input; edit server definitions here.",
+    "This is an EXAMPLE only. Copy it to .floatie-mcp.json in your workspace and edit it.",
+    ".floatie-mcp.json is hand-authored by you and committed to YOUR workspace repo.",
+    "Floatie uses only .floatie-mcp.json as its MCP source; edit server definitions here.",
     "",
-    "Claude Code reads .mcp.json natively at project scope.",
+    "Native Claude project .mcp.json is separate and ignored by Floatie.",
     "Values like ${LINEAR_API_KEY} are expanded from the environment — set them",
-    "in .env.secrets (gitignored). Never put real tokens in .mcp.json itself.",
+    "in .env.secrets (gitignored). Never put real tokens in .floatie-mcp.json itself.",
     "",
     "Server transport types (support depends on the installed harness):",
     "  1. stdio   — npx / uvx server; runs as a child process in the VM",
@@ -14,7 +14,7 @@
     "  3. sse     — legacy Server-Sent Events endpoint (many servers have moved to http)",
     "",
     "NOTE: the JSON field is \"type\" (not \"transport\"). \"--transport\" is only the",
-    "claude mcp add CLI flag — the committed .mcp.json always uses \"type\"."
+    "claude mcp add CLI flag — the committed .floatie-mcp.json always uses \"type\"."
   ],
   "mcpServers": {
     "filesystem": {

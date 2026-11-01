@@ -349,7 +349,7 @@ def mcp_referenced_vars(mcp_text: str) -> set:
 def read_secrets(ws_dir: str) -> list:
     """Return [{key, state}] for core + MCP-referenced secrets. Values never returned."""
     env_path = os.path.join(ws_dir, ".env.secrets")
-    mcp_path = os.path.join(ws_dir, ".mcp.json")
+    mcp_path = os.path.join(ws_dir, ".floatie-mcp.json")
     env_vals = {}
     if os.path.isfile(env_path):
         try:

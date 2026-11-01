@@ -75,16 +75,34 @@ agents are reused unchanged. See the [security model](security.md).
 
 ## Optional MCPs, plugins and skills
 
-Copy `.mcp.json.example` to `.mcp.json` only if needed. Declare servers explicitly,
+Copy `.floatie-mcp.json.example` to `.floatie-mcp.json` only if needed. Declare servers explicitly,
 reference secrets as `${VAR}`, and allow required endpoint and authentication
 domains in `egress`. Add secret values to the workspace's ignored `.env.secrets`.
 Run `create` when changing secrets or missing clones; apply `firewall` when
 changing network policy. `reload` alone does neither.
 
+This is Floatie's only MCP source, with the existing `mcpServers` schema. Native
+Claude project `.mcp.json` is independent and ignored by Floatie; keep any
+host-specific project configuration there. Floatie does not copy it to guest
+`~/work` or combine it with `.floatie-mcp.json`.
+
+Upgrade the tool and workspace filename together: prepare `.floatie-mcp.json`
+with the intended VM definitions before running the updated tool, then reload
+(and run Codex setup if needed). For rollback, restore the reviewed older tool
+revision together with its `.mcp.json` source before reapplying. Review any
+existing native project file before changing it. Neither version falls back to
+the other filename; an unpaired change can select unintended definitions or
+leave integrations absent. Preserve guest customizations before reapplying.
+
 Claude MCP configuration is placed at user scope in the guest. Authenticate OAuth
 servers through Claude's `/mcp` flow. Plugins use the cached Claude login; before
 login their installation can warn and be skipped. After login, `reload` retries
 configured plugins. List marketplaces before plugins in `workspace.yml`.
+
+If the Floatie source is missing or has no servers, Claude's existing entries
+remain. Codex setup/reload removes its previously managed servers in that case,
+preserving unmanaged personal servers. Removing a Claude server from the source
+does not remove it from guest user scope; use `claude mcp remove <name>` there.
 
 Codex setup/reload manages a block in its guest configuration. STDIO and
 streamable HTTP are supported; legacy SSE needs a provider HTTP endpoint. Run
@@ -92,6 +110,9 @@ streamable HTTP are supported; legacy SSE needs a provider HTTP endpoint. Run
 are separate from Claude's. Conflicting unmanaged server names fail rather than
 being overwritten. Environment expansion can put STDIO secrets in a mode-0600
 generated config; never commit it, and refresh setup/reload after changing them.
+HTTP credential references resolve when connecting, so rotating their environment
+values does not require embedding them in generated configuration. Refresh the
+guest environment deliberately; reload does not copy `.env.secrets`.
 
 Place shared skills in `.agents/skills/<skill>/SKILL.md`; existing
 `.claude/skills` remains supported. Treat skills and plugins as executable trusted

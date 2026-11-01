@@ -6,6 +6,19 @@ current directory for `workspace.yml`. It does not search parent directories.
 A workspace names one Lima VM, its repositories, resources, agent instructions,
 optional stack, credentials and integrations.
 
+`.floatie-mcp.json` is the sole Floatie MCP source, using the `mcpServers` schema.
+Create/reload merges its entries into guest Claude user scope (`~/.claude.json`);
+Codex setup/reload replaces the managed block in guest `config.toml`. The UI reads
+the same source to list credential states. Native Claude project `.mcp.json`
+belongs to the project's Claude configuration and is ignored by these readers.
+Floatie does not place a project `.mcp.json` in guest `~/work`.
+
+Missing or empty sources leave existing Claude entries in place, but remove
+Floatie-managed Codex servers while preserving unmanaged personal entries.
+OAuth state and harness login remain separate. Reload does not copy secrets;
+HTTP credential references resolve at connection time, while STDIO expansion can
+write secrets into Codex's mode-0600 generated configuration.
+
 | Location | Responsibility |
 |---|---|
 | Host tool checkout | Wrapper, recipes, provisioning, Python UI server and built UI |

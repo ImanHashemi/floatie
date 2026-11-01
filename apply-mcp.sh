@@ -1,15 +1,15 @@
 #!/bin/bash
-# apply-mcp.sh — merge a workspace .mcp.json's mcpServers into ~/.claude.json at
+# apply-mcp.sh — merge a workspace .floatie-mcp.json's mcpServers into ~/.claude.json at
 # USER scope, so every Claude Code process in the VM (orchestrator, workers,
 # subagents) sees the same MCP servers regardless of working directory.
 #
 # Invoked in the guest as: bash -s -- <path-to-mcp-json> < apply-mcp.sh
-# (the workspace .mcp.json is copied into the guest first by the _place-context recipe).
+# (the workspace .floatie-mcp.json is copied into the guest first by the _place-context recipe).
 #
 # floatie only APPLIES the hand-authored list — it never generates it (decision #18).
 # Merge semantics (v1): workspace servers are added/overwritten by name; servers
-# NOT in the workspace .mcp.json are LEFT IN PLACE (so interactively-added servers
-# and cached OAuth state are preserved). Removing a server from .mcp.json does not
+# NOT in the workspace .floatie-mcp.json are LEFT IN PLACE (so interactively-added servers
+# and cached OAuth state are preserved). Removing a server from .floatie-mcp.json does not
 # auto-remove it from the VM — use `claude mcp remove <name>` or `just rebuild`.
 set -euo pipefail
 
@@ -34,7 +34,7 @@ except json.JSONDecodeError as e:
 
 servers = ws.get("mcpServers", {})
 if not isinstance(servers, dict) or not servers:
-    print("==> .mcp.json has no mcpServers — nothing to apply"); sys.exit(0)
+    print("==> .floatie-mcp.json has no mcpServers — nothing to apply"); sys.exit(0)
 
 path = os.path.expanduser("~/.claude.json")
 try:

@@ -10,7 +10,7 @@ replace the examples before creating the VM.
 | `AGENTS.md` | Shared repository map, verification commands and working agreements; placed at `~/work/AGENTS.md` |
 | `CLAUDE.md` | Imports `AGENTS.md`; placed at `~/work/CLAUDE.md` |
 | `.agents/skills/orchestrate/` | Shared coordination skill and worker brief |
-| `.mcp.json.example` | Optional integration examples; copy to `.mcp.json` only when needed |
+| `.floatie-mcp.json.example` | Optional integration examples; copy to `.floatie-mcp.json` only when needed |
 | `.env.secrets.example` | Optional credential placeholders; keep actual `.env.secrets` private |
 | `.floatie-local/` | Ignored local work board and handoffs; never export |
 
@@ -20,8 +20,15 @@ Edit `workspace.yml` and `AGENTS.md` to name your repositories, roles, interface
 and verification commands. Configure Git signing and verify signed commits before
 agent delivery. If credentials are required, copy `.env.secrets.example` to
 `.env.secrets`, restrict it with `chmod 600 .env.secrets`, and fill in only the
-required values. Reference secrets as `${VAR}` in optional `.mcp.json` entries;
+required values. Reference secrets as `${VAR}` in optional `.floatie-mcp.json` entries;
 never put secret values in tracked files.
+Floatie reads only `.floatie-mcp.json`, using the `mcpServers` schema. Native
+Claude project `.mcp.json` is independent and ignored by Floatie. Missing or empty
+Floatie sources preserve Claude's existing user-scope servers but remove Codex's
+managed servers; unmanaged personal servers remain. Reload does not copy secrets.
+Upgrade and roll back the tool revision together with its expected source
+filename; see `docs/guides/installation.md` in your tool checkout for the rollout
+and rollback procedure.
 
 On the host, from this workspace directory:
 

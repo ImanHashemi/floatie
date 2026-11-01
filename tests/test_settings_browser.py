@@ -1,4 +1,5 @@
 """Settings acceptance against synthetic observations and real config HTTP writes."""
+import json
 import os
 import re
 from datetime import datetime, timezone
@@ -625,6 +626,38 @@ def test_settings_desktop_visual_and_readonly_credentials(workers):
     assert page.evaluate('Object.keys(localStorage)') == ['floatie-theme']
     assert page.evaluate('Object.keys(sessionStorage)') == []
     assert errors == []
+
+
+def test_credentials_reads_vm_mcp_file(agent_page, tmp_path, monkeypatch):
+    monkeypatch.setattr(u.FixtureProvider, 'secrets', lambda self: u.read_secrets(self.ws_dir))
+    for filename, host, key in [
+        ('.floatie-mcp.json', 'vm.example', 'VM_ONLY_TOKEN'),
+        ('.mcp.json', 'host.example', 'HOST_ONLY_TOKEN'),
+    ]:
+        (tmp_path / filename).write_text(json.dumps({'mcpServers': {'synthetic': {
+            'type': 'http', 'url': f'https://{host}/mcp',
+            'headers': {'Authorization': 'Bearer ${' + key + '}'},
+        }}}))
+    (tmp_path / '.env.secrets').write_text('VM_ONLY_TOKEN=synthetic-secret-value\n')
+
+    page = agent_page
+    page.set_viewport_size({'width': 1280, 'height': 900})
+    open_settings(page, 'credentials')
+    with page.expect_response(lambda response: response.url.endswith('/api/state')) as observed:
+        refresh(page)
+    assert observed.value.status == 200
+    state = observed.value.json()
+    rows = state['secrets']
+    assert all(set(row) == {'key', 'state'} for row in rows)
+    assert {row['key']: row['state'] for row in rows}['VM_ONLY_TOKEN'] == 'set'
+    assert 'HOST_ONLY_TOKEN' not in json.dumps(state)
+    assert 'synthetic-secret-value' not in json.dumps(state)
+    credential = panel(page, 'credentials').locator('.credential-row').filter(has_text='VM_ONLY_TOKEN')
+    expect(credential.locator('dt')).to_have_text('VM_ONLY_TOKEN')
+    expect(credential.locator('dd')).to_have_text('set')
+    expect(page.locator('body')).not_to_contain_text('HOST_ONLY_TOKEN')
+    expect(page.locator('body')).not_to_contain_text('synthetic-secret-value')
+    page.screenshot(path=str(tmp_path / 'vm-mcp-credentials.png'), full_page=True)
 
 
 def test_network_conflict_response_remains_reviewable_when_followup_read_fails(workers):
