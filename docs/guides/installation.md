@@ -34,7 +34,9 @@ on create, so changing a URL does not replace an existing clone.
 Describe repository roles, verification commands and authority boundaries in
 workspace `AGENTS.md`. Keep `CLAUDE.md` as a reference to shared guidance. The
 starter's shared orchestrate skill uses installed guest recipes and explicit
-repository scope. Optional `stack/` content is placed at guest `~/work/stack`.
+repository scope. Optional `stack/` content is placed at guest `~/work/stack`;
+if it contains `.env.vm`, that file becomes `.env` there, and a `.floatie-vm`
+marker file is added so stack scripts can tell they run in the VM.
 Do not commit `.env.secrets`, private work boards or handoffs.
 
 For private GitHub repositories, use a fine-grained `GITHUB_TOKEN` scoped to
@@ -63,10 +65,13 @@ verified on that account. Keep the private key in the VM. Stop/start retains it;
 rebuild generates a replacement requiring registration.
 
 Inside the VM, run `codex login --device-auth` and complete browser login, or run
-`claude` and use `/login`. Detach with Ctrl-b d. Back on the host, run
-`floatie orchestrate` (Codex) or `floatie orchestrate claude`. Authentication and
-conversation history belong to each harness; switching harnesses needs a written
-handoff and must not replace an agent that is still working.
+`claude` and use `/login`. Detach with Ctrl-b d. Start your agent in that
+terminal, or create workers with `floatie worker <name>` to run several agents in
+parallel. Orchestration is optional: `floatie orchestrate` (Codex) or
+`floatie orchestrate claude` starts a root agent that coordinates workers.
+Authentication and conversation history belong to each harness; switching
+harnesses needs a written handoff and must not replace an agent that is still
+working.
 
 Codex setup installs/checks the guest CLI and bubblewrap prerequisites. On Ubuntu
 with restricted user namespaces it uses the packaged AppArmor policy and checks

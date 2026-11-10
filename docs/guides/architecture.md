@@ -24,7 +24,7 @@ write secrets into Codex's mode-0600 generated configuration.
 | Host tool checkout | Wrapper, recipes, provisioning, Python UI server and built UI |
 | Host workspace | Configuration and policy selected by the user |
 | Guest `~/work/<repo>` | Working clones on the VM disk |
-| Guest `~/work` / main terminal | Root agent coordinates work across repositories |
+| Guest `~/work` / main terminal | Main terminal across all repositories; home of the optional root agent |
 | Guest `~/work/.worktrees/<worker>/<repo>` | Worker worktrees and branch `worker/<worker>` |
 | Guest `~/work/stack` | Optional workspace-supplied stack and hooks |
 

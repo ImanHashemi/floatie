@@ -45,13 +45,16 @@ workspace's secrets file. Detach from tmux with `Ctrl-b d`. For configured Claud
 plugins, run `floatie reload` on the host after login to retry installation.
 Missing optional integration authentication should not block unrelated local work.
 
-Start or reuse the root from the host with `floatie orchestrate codex` or
-`floatie orchestrate claude`. The root uses the shared orchestrate skill and
-installed guest commands to discover, create and communicate with workers.
 Use `floatie worker review repo-a` to create/reconnect a worker with that exact
 scope, and `floatie attach review` to attach its terminal. Substitute your actual
-repository and worker names. Each worker has one primary agent; changing the
-harness argument does not replace an already-running agent.
+repository and worker names. Start an agent in a worker's terminal to work there;
+each worker has one primary agent.
+
+Orchestration is optional. `floatie orchestrate codex` or
+`floatie orchestrate claude` starts or reuses a root agent in the main terminal.
+It uses the shared orchestrate skill and installed guest commands to discover,
+create and communicate with workers. Changing the harness argument does not
+replace an already-running agent.
 
 ## Shared guidance and skills
 
