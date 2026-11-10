@@ -3,7 +3,7 @@ cpus: 4
 memory: 4GiB
 
 # Git identity — author name and email embedded in every commit.
-# REQUIRED: set both fields before running `just create`.
+# REQUIRED: set both fields before running `floatie create`.
 # The email MUST be a verified email on your GitHub account; GitHub shows
 # "Unverified" on commits whose author email is not verified on the account.
 # This email is also used in the SSH signing key's allowed-signers file.

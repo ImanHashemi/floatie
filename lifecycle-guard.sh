@@ -173,7 +173,7 @@ else
   echo "" >&2
   echo "  Push or commit your work, then re-run." >&2
   echo "  To override (DATA LOSS — unpushed work will be wiped), pass 'true' as the force arg:" >&2
-  echo "    just destroy true" >&2
-  echo "    just rebuild true" >&2
+  echo "    floatie destroy true" >&2
+  echo "    floatie rebuild true" >&2
   exit 1
 fi

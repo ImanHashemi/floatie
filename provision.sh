@@ -70,7 +70,7 @@ fi
 # bash invokes it as a non-interactive non-login shell.
 # Solution: /etc/profile.d/ scripts are sourced for all login shells AND for bash -l;
 # we use bash -l in any recipe that needs claude on PATH (e.g. headless verification).
-# Belt-and-suspenders: also add to ~/.profile for interactive `just attach` sessions.
+# Belt-and-suspenders: also add to ~/.profile for interactive `floatie attach` sessions.
 
 # /etc/profile.d/floatie-path.sh — login-shell PATH injection.
 # Note: /etc/profile.d scripts are sourced with dot, so $HOME expands at runtime.
@@ -202,7 +202,7 @@ fi
 
 # ── Git identity (user.name / user.email) ────────────────────────────────────
 # Read git_user_name and git_user_email written to ~/.floatie-git-identity by
-# `just create` (which parses workspace.yml on the host and passes them in).
+# `floatie create` (which parses workspace.yml on the host and passes them in).
 # Both are required for commits and for the SSH signing key's allowed-signers
 # file (the signing email must match a verified email on the GitHub account).
 GIT_IDENT_FILE="$HOME/.floatie-git-identity"
@@ -218,7 +218,7 @@ if [ -n "$GIT_USER_NAME" ]; then
   echo "==> git user.name = $GIT_USER_NAME"
 else
   echo "WARN: git_user_name not set in workspace.yml — commits will lack an author name." >&2
-  echo "WARN: Set git_user_name: in workspace.yml and re-run 'just create'." >&2
+  echo "WARN: Set git_user_name: in workspace.yml and re-run 'floatie create'." >&2
 fi
 
 if [ -n "$GIT_USER_EMAIL" ]; then
@@ -226,7 +226,7 @@ if [ -n "$GIT_USER_EMAIL" ]; then
   echo "==> git user.email = $GIT_USER_EMAIL"
 else
   echo "WARN: git_user_email not set in workspace.yml — commits and signing will not work." >&2
-  echo "WARN: Set git_user_email: to a VERIFIED email on your GitHub account and re-run 'just create'." >&2
+  echo "WARN: Set git_user_email: to a VERIFIED email on your GitHub account and re-run 'floatie create'." >&2
   echo "WARN: GitHub shows 'Unverified' if the commit email is not verified on your account." >&2
 fi
 
@@ -351,7 +351,7 @@ fi
 # The official installer writes `uv` to ~/.local/bin (already on PATH above).
 # Runs AFTER PATH setup so the idempotency check finds uv via PATH.
 # Note: astral.sh is called here during provision, which runs BEFORE the egress
-# firewall is applied (firewall.sh runs after provision in `just create`), so
+# firewall is applied (firewall.sh runs after provision in `floatie create`), so
 # the astral.sh fetch succeeds unconditionally. On a re-provision of a running
 # VM the firewall is already up — astral.sh is in the base allowlist in
 # firewall.sh, so re-running provision with the firewall up is also safe.

@@ -205,3 +205,19 @@ def test_documented_wait_examples_accept_their_corresponding_cursors(
         frozenset({('review', '%42')}),
         frozenset({('review', None), ('other', None)}),
     }, 'publish both single-pane and multi-target examples'
+
+
+def test_product_text_names_the_floatie_wrapper_not_bare_just_recipes():
+    """A workspace has no justfile, so `just <recipe>` advice cannot be followed there."""
+    recipes = sorted((name for name in CONTRACT['justfile']
+                      if not name.startswith('_') and name != 'install'), key=len, reverse=True)
+    bare = re.compile(r'\bjust\s+(?:%s)\b(?!-)' % '|'.join(map(re.escape, recipes)))
+    sources = [ROOT / 'justfile', ROOT / 'agents.just', ROOT / 'help.txt', ROOT / 'lima.yaml',
+               ROOT / 'bin/floatie', *ROOT.glob('*.sh'), *ROOT.glob('*.py'), *ROOT.glob('*.md'),
+               *(ROOT / 'docs').rglob('*.md'),
+               *(path for path in (ROOT / 'workspace-template').rglob('*') if path.is_file())]
+    offending = [f'{path.relative_to(ROOT)}:{number}: {line.strip()}'
+                 for path in sorted(sources)
+                 for number, line in enumerate(path.read_text().splitlines(), 1)
+                 if bare.search(line)]
+    assert offending == []

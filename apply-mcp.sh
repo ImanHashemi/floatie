@@ -10,7 +10,7 @@
 # Merge semantics (v1): workspace servers are added/overwritten by name; servers
 # NOT in the workspace .floatie-mcp.json are LEFT IN PLACE (so interactively-added servers
 # and cached OAuth state are preserved). Removing a server from .floatie-mcp.json does not
-# auto-remove it from the VM — use `claude mcp remove <name>` or `just rebuild`.
+# auto-remove it from the VM — use `claude mcp remove <name>` or `floatie rebuild`.
 set -euo pipefail
 
 SRC="${1:-/tmp/floatie-mcp.json}"

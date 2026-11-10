@@ -24,8 +24,8 @@ def recipe(tmp_path):
 import json, os, sys
 with open(os.environ['TEST_AGENT_LOG'], 'a') as f:
     f.write(json.dumps({'argv': sys.argv[1:], 'stdin': sys.stdin.read()}) + '\\n')
-if sys.argv[1] == 'list' and 'TEST_VM_STATUS' in os.environ:
-    print(os.environ['TEST_VM_STATUS'])
+if sys.argv[1] == 'list':
+    print(os.environ.get('TEST_VM_STATUS', 'Running'))
     sys.exit(int(os.environ.get('TEST_VM_EXIT', '0')))
 if 'has-session' in sys.argv and 'TEST_LIVE_SESSIONS' in os.environ:
     target = sys.argv[sys.argv.index('-t') + 1]
@@ -172,7 +172,8 @@ def test_host_attach_uses_exact_target_and_warn_only_disk_preflight(recipe):
     result, calls = recipe('attach', 'review', env={'TEST_FREE_KB': '1'})
     assert result.returncode == 0, result.stderr
     assert 'WARN' in result.stdout
-    assert [c['argv'][3:] for c in calls] == [
+    assert calls[0]['argv'] == ['list', 'example-vm', '--format', '{{.Status}}']
+    assert [c['argv'][3:] for c in calls[1:]] == [
         ['tmux', 'has-session', '-t', '=review'],
         ['tmux', 'attach-session', '-t', '=review'],
     ]
@@ -188,7 +189,8 @@ def test_attach_keeps_target_literal(recipe):
 def test_prefix_collision_does_not_reuse_or_attach_other_worker(recipe):
     result, calls = recipe('attach', 'review', env={'TEST_LIVE_SESSIONS': '["review-other"]'})
     assert result.returncode != 0
-    assert [c['argv'][3:] for c in calls] == [['tmux', 'has-session', '-t', '=review']]
+    assert calls[0]['argv'] == ['list', 'example-vm', '--format', '{{.Status}}']
+    assert [c['argv'][3:] for c in calls[1:]] == [['tmux', 'has-session', '-t', '=review']]
     assert 'floatie worker review' in result.stderr
 
 
@@ -223,6 +225,22 @@ sys.exit('would attach main-other')
     assert [json.loads(line) for line in log.read_text().splitlines()] == [
         ['has-session', '-t', '=main'], ['new-session', '-s', 'main', '-c', str(home / 'work')],
     ]
+
+
+@pytest.mark.parametrize('status', ['', 'Stopped'])
+def test_attach_refuses_before_vm_boundary_when_vm_is_not_running(recipe, status):
+    result, calls = recipe('attach', env={'TEST_VM_STATUS': status})
+    assert result.returncode != 0
+    assert "'floatie create'" in result.stderr and "'floatie start'" in result.stderr
+    assert [c['argv'][0] for c in calls] == ['list']
+
+
+@pytest.mark.parametrize('recipe_name', ['start', 'stop'])
+def test_missing_vm_points_to_the_floatie_command(recipe, recipe_name):
+    result, calls = recipe(recipe_name, env={'TEST_VM_STATUS': ''})
+    assert result.returncode != 0
+    assert "run 'floatie create' first" in result.stderr
+    assert [c['argv'][0] for c in calls] == ['list']
 
 
 @pytest.mark.parametrize('status,code', [('Stopped', '0'), ('', '0'), ('', '1'), ('broken', '0')])

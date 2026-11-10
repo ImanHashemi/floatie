@@ -13,7 +13,7 @@ the interface. Run `floatie help` for a terminal-sized reference.
 | `just install` | Run in the tool checkout; symlink its wrapper into `FLOATIE_BIN_DIR` or `~/.local/bin` |
 | `floatie create` | Create/start VM and reconcile provisioning, identity, secrets, plugins, missing clones, context and firewall |
 | `floatie codex-setup` | After create, install/check Codex and sandbox prerequisites; apply config and firewall |
-| `floatie attach [worker]` | Attach main or a live worker terminal; does not launch an agent |
+| `floatie attach [worker]` | Attach main or a live worker terminal in a running VM; does not launch an agent |
 | `floatie orchestrate [codex\|claude]` | Start/reuse root agent, focus its pane and attach; defaults to Codex |
 | `floatie worker <name> [repo]` | Create with all actual clones or one repo; reconnect exact saved scope |
 | `floatie workers` | List saved workers and live session state, excluding root; does not start the VM |

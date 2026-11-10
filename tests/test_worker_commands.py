@@ -37,5 +37,6 @@ def test_copy_executes_only_literal_workspace_and_saved_scope(workers, tmp_path,
 def test_missing_review_does_not_attach_review_other(recipe):
     result, calls = recipe('attach', 'review', env={'TEST_LIVE_SESSIONS': '["review-other"]'})
     assert result.returncode != 0
-    assert [c['argv'][3:] for c in calls] == [['tmux', 'has-session', '-t', '=review']]
+    assert calls[0]['argv'] == ['list', 'example-vm', '--format', '{{.Status}}']
+    assert [c['argv'][3:] for c in calls[1:]] == [['tmux', 'has-session', '-t', '=review']]
     assert 'no tmux session' in result.stderr

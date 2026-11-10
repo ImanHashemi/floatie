@@ -69,9 +69,9 @@ fi
 # ── Dependency guard ─────────────────────────────────────────────────────────
 # Placed AFTER the --off early-exit: the permissive escape hatch must work even
 # on a guest that is missing dig/ipset (e.g. before first provision completes).
-command -v dig >/dev/null || { echo "error: dig missing — re-run provision (just create)" >&2; exit 1; }
-command -v ipset >/dev/null || { echo "error: ipset missing — re-run provision (just create)" >&2; exit 1; }
-command -v ip >/dev/null || { echo "error: 'ip' (iproute2) missing — re-run provision (just create)" >&2; exit 1; }
+command -v dig >/dev/null || { echo "error: dig missing — re-run provision (floatie create)" >&2; exit 1; }
+command -v ipset >/dev/null || { echo "error: ipset missing — re-run provision (floatie create)" >&2; exit 1; }
+command -v ip >/dev/null || { echo "error: 'ip' (iproute2) missing — re-run provision (floatie create)" >&2; exit 1; }
 
 # ── Gateway ───────────────────────────────────────────────────────────────────
 GW="$(ip route 2>/dev/null | awk '/^default/{print $3; exit}')"

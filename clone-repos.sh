@@ -7,7 +7,7 @@
 #
 # Clone destination: ~/work/<repo-name>  (VM disk, NOT the read-only host mount).
 # Idempotent: if the directory already exists, skip with a message.
-# A failed clone aborts the script; fix the entry and re-run `just create` —
+# A failed clone aborts the script; fix the entry and re-run `floatie create` —
 # already-cloned repos are skipped.
 #
 # GITHUB_TOKEN availability:
@@ -20,7 +20,7 @@
 set -euo pipefail
 
 # Source secrets so GITHUB_TOKEN is available in this non-interactive non-login shell.
-# ~/.env.secrets is copied to the guest by `just create` before the clone step runs.
+# ~/.env.secrets is copied to the guest by `floatie create` before the clone step runs.
 if [ -f "$HOME/.env.secrets" ]; then set -a; . "$HOME/.env.secrets"; set +a; fi
 
 mkdir -p "$HOME/work"

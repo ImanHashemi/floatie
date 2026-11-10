@@ -153,7 +153,7 @@ create:
             limactl start "$NAME" --tty=false
         fi
     elif [ -n "$STATUS" ]; then
-        echo "error: VM '$NAME' is in state '$STATUS'; run 'just destroy' first" >&2
+        echo "error: VM '$NAME' is in state '$STATUS'; run 'floatie destroy' first" >&2
         exit 1
     else
         echo "==> creating VM from lima.yaml (cpus=$CPUS memory=${MEMORY}GiB)"
@@ -199,7 +199,7 @@ create:
         GH_TOKEN_VAL="${GH_TOKEN_VAL%$'\r'}"
         if [ -z "$GH_TOKEN_VAL" ] || [ "$GH_TOKEN_VAL" = "github_pat_DUMMY" ]; then
             echo "WARN: GITHUB_TOKEN is empty or still set to the example placeholder in .env.secrets — git push and private-repo clones won't work until it is set."
-            echo "WARN: Mint a fine-grained PAT at https://github.com/settings/personal-access-tokens/new and re-run 'just create'."
+            echo "WARN: Mint a fine-grained PAT at https://github.com/settings/personal-access-tokens/new and re-run 'floatie create'."
         fi
         echo "==> copying .env.secrets to guest ~/.env.secrets (0600)"
         # Normalize before copy-in:
@@ -215,7 +215,7 @@ create:
         echo "==> .env.secrets in place"
     else
         echo "WARN: .env.secrets not found in workspace root — GITHUB_TOKEN and MCP keys will be unset."
-        echo "WARN: Create it from .env.secrets.example and re-run 'just create'."
+        echo "WARN: Create it from .env.secrets.example and re-run 'floatie create'."
         echo "WARN: Claude Code auth is separate — run 'floatie attach' then 'claude' then '/login'."
     fi
 
@@ -253,8 +253,8 @@ create:
 
 # Attach to a tmux session inside the VM.
 # Usage:
-#   just attach           — attach to the main session (slice-1 behaviour, unchanged)
-#   just attach <worker>  — attach to a named worker session
+#   floatie attach           — attach to the main session (slice-1 behaviour, unchanged)
+#   floatie attach <worker>  — attach to a named worker session
 # Use Ctrl-b d to detach without destroying the session.
 # Enter the VM at ~/work in tmux (or reconnect to a named worker session).
 [positional-arguments]
@@ -266,6 +266,12 @@ attach worker="":
     REPO={{ quote(repo) }}
     [ -n "$NAME" ] || { echo "error: set 'name:' in workspace.yml" >&2; exit 1; }
     bash "$REPO/disk-preflight.sh" --warn-only {{ quote(lima_dir) }}/"$NAME"
+    STATUS=$(limactl list "$NAME" --format '{{{{.Status}}' 2>/dev/null || true)
+    if [ "$STATUS" != "Running" ]; then
+        echo "error: VM '$NAME' is not running (status: ${STATUS:-absent})." >&2
+        echo "       Run 'floatie create' (new) or 'floatie start' (stopped) first." >&2
+        exit 1
+    fi
     if [ -z "$WORKER" ]; then
         # Default: attach (or create) the main session, rooted at ~/work so the
         # env-map ~/work/CLAUDE.md loads top-down for the orchestrator.
@@ -664,8 +670,8 @@ worker-rm worker_name force="false":
 
 # Re-apply (or relax) the egress firewall from workspace.yml.
 # Usage:
-#   just firewall       — re-resolve DNS and re-apply allowlist per workspace.yml
-#   just firewall off   — force permissive (allow-all), ignoring workspace.yml permissive flag
+#   floatie firewall       — re-resolve DNS and re-apply allowlist per workspace.yml
+#   floatie firewall off   — force permissive (allow-all), ignoring workspace.yml permissive flag
 #
 # Re-running is the recommended fix for CDN-backed domains that start failing due
 # to IP rotation (iptables+ipset snapshots IPs at apply time; re-running re-resolves them).
@@ -717,7 +723,7 @@ stop:
     [ -n "$NAME" ] || { echo "error: set 'name:' in workspace.yml" >&2; exit 1; }
     STATUS=$(limactl list "$NAME" --format '{{{{.Status}}' 2>/dev/null || true)
     if [ -z "$STATUS" ]; then
-        echo "error: VM '$NAME' does not exist — run 'just create' first" >&2; exit 1
+        echo "error: VM '$NAME' does not exist — run 'floatie create' first" >&2; exit 1
     fi
     if [ "$STATUS" = "Stopped" ]; then
         echo "==> VM '$NAME' is already stopped — nothing to do"
@@ -743,7 +749,7 @@ start:
     bash "$REPO/disk-preflight.sh" {{ quote(lima_dir) }}/"$NAME"
     STATUS=$(limactl list "$NAME" --format '{{{{.Status}}' 2>/dev/null || true)
     if [ -z "$STATUS" ]; then
-        echo "error: VM '$NAME' does not exist — run 'just create' first" >&2; exit 1
+        echo "error: VM '$NAME' does not exist — run 'floatie create' first" >&2; exit 1
     fi
     if [ "$STATUS" = "Running" ]; then
         echo "==> VM '$NAME' is already running — nothing to do"
@@ -764,7 +770,7 @@ start:
 # Remove the VM (force stop + delete).
 # Push-guarded: aborts if any worktree (main repos or worker worktrees) has uncommitted
 # changes or unpushed commits. Pass 'true' as the force arg to override (DATA LOSS —
-# unpushed work will be wiped along with the VM disk): just destroy true
+# unpushed work will be wiped along with the VM disk): floatie destroy true
 # Remove the VM (push-guarded; pass 'true' to force despite unpushed/uncommitted work).
 destroy force="false":
     #!/usr/bin/env bash
@@ -804,7 +810,7 @@ destroy force="false":
     echo "==> VM '$NAME' removed"
 
 # Recreate the VM from clean and re-provision.
-# Push-guarded (same guard as destroy; pass 'true' as the force arg to override: just rebuild true).
+# Push-guarded (same guard as destroy; pass 'true' as the force arg to override: floatie rebuild true).
 # DATA LOSS WARNING: all VM disk state is wiped — including any worktrees, branches,
 # Docker images, and other in-VM state not pushed to a remote. This is why the guard runs.
 # Wipe + re-provision the VM from clean (push-guarded; pass 'true' to force).

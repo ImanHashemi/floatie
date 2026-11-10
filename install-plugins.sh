@@ -21,7 +21,7 @@ set -euo pipefail
 
 # Source secrets so GITHUB_TOKEN (needed for private marketplace clones) is
 # available in this non-interactive non-login shell.  ~/.env.secrets is copied
-# to the guest by `just create` before this script runs.
+# to the guest by `floatie create` before this script runs.
 if [ -f "$HOME/.env.secrets" ]; then set -a; . "$HOME/.env.secrets"; set +a; fi
 
 # Ensure ~/.local/bin (Claude Code) is on PATH for a non-login shell.
