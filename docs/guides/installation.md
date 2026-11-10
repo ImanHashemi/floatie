@@ -4,6 +4,8 @@ Use macOS on Apple Silicon with Lima 2.1+, `just`, Git and host Python 3.9+ on
 PATH. The VM template uses Apple's virtualization framework and Ubuntu 24.04.
 Node, npm and test Python are contributor tools, not host UI runtime requirements.
 Budget memory for the guest and services; Docker Desktop is not required.
+With Homebrew, `brew install lima just` installs the first two; Git and Python 3
+come with the Xcode Command Line Tools (`xcode-select --install`).
 
 ## Tool and workspace
 

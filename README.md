@@ -16,7 +16,16 @@ inside it. Agents share guest credentials and have passwordless sudo. Read the
 
 ## Start here
 
-From a downloaded or cloned tool checkout:
+Install the host tools and clone Floatie. With [Homebrew](https://brew.sh):
+
+```sh
+brew install lima just
+git clone https://github.com/ImanHashemi/floatie.git
+cd floatie
+```
+
+Git and Python 3 come with the Xcode Command Line Tools
+(`xcode-select --install`). Then, from the tool checkout:
 
 ```sh
 just install
