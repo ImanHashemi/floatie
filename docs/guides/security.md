@@ -1,75 +1,92 @@
 # Security model
 
-Floatie supports trusted development with fallible coding agents. It is not a
-sandbox for deliberately hostile code, nor a guarantee against exfiltration.
-Review actual workspace mounts, credentials and reachable services before use.
+Floatie is built for trusted development work with coding agents that can make
+mistakes. It is not a jail for hostile code, and it does not guarantee that data
+cannot leave the VM. Before you use it with sensitive material, check what the
+VM can read, which credentials it holds and which services it can reach.
 
-## Host and guest
+## Your Mac and the VM
 
-The VM has a separate kernel. By default, `lima.yaml` mounts the host home
-read-only at its host path inside the guest. **Read-only protects against writes,
-not reads.** Files readable through that mount can include host secrets and
-private source. Do not assume a new VM name or a changed `HOME` isolates host data.
-For sensitive acceptance work, use an isolated host or clean account and verify
-actual mounts before starting agents.
+- The VM has its own kernel and its own disk.
+- Your Mac's home directory is mounted in the VM **read-only**, at the same
+  path. Read-only stops writes, not reads: an agent can read every file your
+  user can read there, including secrets and private source code.
+- A new VM name or a different `HOME` does not hide your files. To test with
+  sensitive material, use a separate Mac or a clean user account, and check what
+  is mounted before you start an agent.
 
-Guest agents have passwordless sudo. Workers share the guest user, VM disk,
-credentials, signing key and Docker daemon. Worktrees and Compose names are
-organizational boundaries, not security boundaries between agents. Full guest
-access lets agents alter guest policy, installed software and other workers.
-New Floatie-launched Codex agents explicitly use that access; saved settings and
-existing agents are not rewritten. Workspace instructions and human approvals
-remain necessary but are not an OS security boundary.
+## Inside the VM
 
-## Credentials and integrations
+- Agents can use sudo without a password.
+- Every worker shares one user, one disk, the same credentials, the signing key
+  and one Docker. Worktrees and Compose project names organise the work. They do
+  not separate agents from each other.
+- An agent with full access can change the VM's settings, its software and other
+  workers. Codex agents that Floatie starts get that access. Settings you saved
+  and agents that already run are not changed.
+- Your instructions and your approvals still matter, but the operating system
+  does not enforce them.
 
-Scope Git credentials to selected repositories and necessary permissions.
-The Git credential helper reads `GITHUB_TOKEN` from the environment; the workspace
-secret file is copied to guest `~/.env.secrets` with mode 0600 and sourced by shell
-startup hooks. Agents running as that user can read it. A mode bit does not
-separate workers. Do not place credentials in repository URLs, logs or prompts.
+## Credentials
 
-The VM's passphrase-free SSH signing key signs commits; it is separate from Git
-repository authentication. Register only its public half as a signing key.
-Harness login caches, MCP tokens and environment values are accessible within
-the guest. MCP servers, plugin marketplaces and skills are trusted code/services
-with the access you give them. Optional integrations need their own authentication;
-a configured endpoint is not proof that login succeeded.
+- Give the GitHub token access to the repositories you chose and nothing more.
+- Git in the VM reads `GITHUB_TOKEN` from the environment. Floatie copies
+  `.env.secrets` to `~/.env.secrets` in the VM, readable only by the VM user, and
+  shells load it when they start. Every agent runs as that user and can read it.
+- Do not put credentials in repository URLs, logs or prompts.
+- The signing key has no passphrase. It signs commits and is not used to log in
+  to GitHub. Register only its public half, as a signing key.
+- Agent logins, MCP tokens and environment values can all be read inside the VM.
+- MCP servers, plugin marketplaces and skills are code and services you trust
+  with that access. Each optional integration needs its own login; a configured
+  server is not a logged-in server.
+- Taking a secret out of a file does not take it away from programs that already
+  loaded it. See
+  [troubleshooting](installation.md#a-removed-or-changed-secret-is-still-in-use).
+  If a secret leaked, rotate it where it was issued.
+- Never commit generated login configuration, private workspaces, terminal
+  captures or real personal or customer data.
 
-Removing a secret from a file does not remove copies inherited by live processes
-or tmux. Follow the [rotation troubleshooting guidance](installation.md#troubleshooting)
-and rotate compromised credentials at their issuer. Never commit generated auth
-configuration, private workspaces, terminal captures or raw patient/customer data.
+## Network
 
-## Egress
+The firewall allows outbound traffic to the IPv4 addresses that the allowed
+domains resolve to at the moment it is applied.
 
-The firewall applies an IPv4 address allowlist resolved from configured domains
-at apply time. Loopback, established connections, gateway/DNS and RFC-1918 private
-ranges remain reachable. This includes possible host/LAN services. Shared CDN
-addresses can permit unrelated domains, and DNS changes can break allowed
-services until reapplication. It is not TLS hostname filtering or a data-loss
-prevention system. Allowed services can themselves receive sensitive data.
+- These always stay reachable: the VM itself, connections that are already open,
+  the gateway and DNS, and private network ranges. Private ranges can include
+  services on your Mac and on your local network.
+- An address shared by a CDN can let other domains through.
+- When a service's addresses change, it stops working until you run
+  `floatie firewall` again.
+- It does not filter by hostname inside TLS, and it does not stop data from
+  leaving. A service you allowed can receive sensitive data.
+- IPv6 is filtered when `ip6tables` is available. Without it, IPv6 traffic is
+  not filtered if the VM has IPv6.
+- An agent with sudo can change the rules.
+- `permissive: true` turns filtering off when it is applied.
+  `floatie firewall off` allows everything until the allowlist is applied again.
+- Saving a network setting does not apply it. Run `floatie firewall` and check
+  the result; a failed or old reading is no proof that filtering is on.
+- The firewall limits traffic from the VM. It does not limit the web UI or other
+  programs on your Mac.
 
-IPv6 filtering is applied when `ip6tables` is available; without it IPv6 egress
-is unfiltered if the guest has IPv6 connectivity. Passwordless sudo allows guest
-code to change these rules. `permissive: true` disables filtering when applied;
-`floatie firewall off` temporarily allows all egress. Saving Settings alone does
-not change effective policy. Observe the result of applying it; a failed or stale
-read is not proof that filtering is active. The firewall constrains guest traffic,
-not the host UI or all host applications.
+## The web UI
 
-## Local UI
+- The UI listens on `127.0.0.1` only.
+- The page and its bundled files can be loaded by anything that reaches that
+  address with an allowed Host header. API calls also need a token that is new
+  on every start.
+- The address you open contains the token, so reloading and going back keep
+  working. Treat that address, your browser history and the UI's log as private.
+- The page keeps the token in memory. It uses no cookies and no browser storage,
+  and it does not put the token in file addresses or referrers.
+- Listening on `127.0.0.1` does not protect against other programs that run as
+  your user. Do not put the UI behind a proxy, a public address or a tunnel.
+- Stopping the UI checks the recorded process and workspace, not just a process
+  number. If the record is old or the port is taken, look into it instead of
+  killing a process you do not know.
 
-The UI binds to `127.0.0.1`. Static HTML and bundled assets are public to permitted
-loopback Host headers; API requests also require a per-run token. The launch URL
-carries the token so reload/back navigation can authenticate. Treat that URL,
-browser history and launcher logs as private. Bootstrap keeps the token in memory,
-uses no cookies or browser storage, and does not put it in asset URLs or referrers.
+## Reporting a vulnerability
 
-Loopback is not protection from another process running as your user. Do not
-expose the UI through a proxy, public bind or tunnel. Stopping the UI uses recorded
-process identity and workspace ownership, not an arbitrary PID; a stale record
-or occupied port requires inspection instead of killing an unknown listener.
-
-Report vulnerabilities according to [SECURITY.md](../../SECURITY.md). A verified
-private route is currently unavailable; do not publish sensitive details.
+Follow [SECURITY.md](../../SECURITY.md). A verified private reporting route is
+not available yet, so do not publish sensitive details.
