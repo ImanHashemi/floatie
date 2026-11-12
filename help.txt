@@ -9,7 +9,7 @@ Daily commands
   floatie workers                      saved workers + live session state; excludes root; no VM start
   floatie start                        boot existing VM + apply firewall; does not resume agents
   floatie stop                         whole VM shutdown, not suspension; disk persists, processes end
-  floatie reload                       apply workspace files/tools/skills + retry Claude plugins
+  floatie reload                       apply workspace files/tools/skills + install and update Claude plugins
   floatie help                         this product help (also bare floatie, --help or -h)
 
 Setup (host, in order)
@@ -45,7 +45,7 @@ Repair / UI diagnostics
   floatie ui-logs                      follow its log; Ctrl-C stops watching
   floatie ui-fg [port]                 run UI in foreground for debugging (default 8787)
   • reload needs a running VM: context/MCPs, stack/, guest tools and shared skills; Codex config
-    if installed; retry configured Claude plugins. It does not apply secrets, Git identity,
+    if installed; install missing Claude plugins and update installed ones. It does not apply secrets, Git identity,
     repo cloning, CPU/memory or firewall. create reconciles identity/secrets and missing clones;
     fresh shells/processes load updated secrets. Rebuild for changed VM resources/template.
 
