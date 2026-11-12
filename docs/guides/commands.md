@@ -22,7 +22,7 @@ prints a short version of this page.
 | `floatie workers` | Lists workers and whether their terminal is live. Does not start the VM. |
 | `floatie start` | Boots a stopped VM and applies the allowlist. Does not restart agents. |
 | `floatie stop` | Shuts the whole VM down. The disk is kept; terminals and agents end. |
-| `floatie reload` | Copies instructions, MCP servers, `stack/`, tools and skills into a running VM. Also refreshes Codex's configuration and retries Claude plugins. |
+| `floatie reload` | Copies instructions, MCP servers, `stack/`, tools and skills into a running VM. Also refreshes Codex's configuration, installs missing Claude plugins and updates installed ones. |
 | `floatie firewall [off]` | Applies the allowlist from `workspace.yml`. `off` allows all traffic until the allowlist is applied again. |
 | `floatie help` | Shows short help. So do `floatie`, `floatie --help` and `floatie -h`. |
 

@@ -4,15 +4,18 @@
 # Each positional argument is one plugins: entry from workspace.yml (already
 # parsed by the justfile):
 #   - "owner/repo" shape (no @)  → claude plugin marketplace add <entry>
+#                                  (already added: claude plugin marketplace update <name>)
 #   - "<plugin>@<marketplace>"   → claude plugin install <entry>
+#                                  (already installed: claude plugin update <entry>)
 #
 # Auth: plugins use the cached ~/.claude login — run `floatie attach` → `claude`
 # → `/login` once per VM (browser on the host via Lima port-forwarding; the token
 # caches in ~/.claude and persists with the VM).  If not yet logged in, each
-# per-entry install below fails and is skipped with a WARN (never a hard failure).
+# per-entry call below fails and is skipped with a WARN (never a hard failure).
 # Log in, then run `floatie reload` to retry.
 #
-# Idempotent: each entry is skipped if already installed.
+# Idempotent: a known marketplace or installed plugin is updated, an unknown one
+# is added or installed.  A failed call only warns; the script always exits 0.
 # ~/.env.secrets is sourced at the top (for GITHUB_TOKEN used by marketplace clones)
 # so this script works in a non-login, non-interactive bash (same pattern as
 # clone-repos.sh).
@@ -70,7 +73,12 @@ for ENTRY in "$@"; do
     # ── Plugin install: <plugin>@<marketplace-name> ───────────────────────────
     echo "==> plugin: $ENTRY"
     if plugin_known "$ENTRY"; then
-      echo "==>   already installed — skip"
+      echo "==>   running: claude plugin update $ENTRY"
+      if claude plugin update "$ENTRY"; then
+        echo "==>   updated"
+      else
+        echo "WARN: 'claude plugin update $ENTRY' failed (auth or network?) — skipping" >&2
+      fi
     else
       echo "==>   running: claude plugin install $ENTRY"
       if claude plugin install "$ENTRY"; then
@@ -83,7 +91,12 @@ for ENTRY in "$@"; do
     # ── Marketplace add: owner/repo or URL ────────────────────────────────────
     echo "==> marketplace: $ENTRY"
     if marketplace_known "$ENTRY"; then
-      echo "==>   already added — skip"
+      echo "==>   running: claude plugin marketplace update ${ENTRY##*/}"
+      if claude plugin marketplace update "${ENTRY##*/}"; then
+        echo "==>   updated"
+      else
+        echo "WARN: 'claude plugin marketplace update ${ENTRY##*/}' failed (auth or network?) — skipping" >&2
+      fi
     else
       echo "==>   running: claude plugin marketplace add $ENTRY"
       if claude plugin marketplace add "$ENTRY"; then
