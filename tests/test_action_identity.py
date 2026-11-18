@@ -195,3 +195,46 @@ def test_agent_reads_remain_pinned_and_report_mismatch(workspace, monkeypatch, a
     code, body = post(handler, payload)
     assert code == 200 and body['identity']['matches'] is False
     assert calls[0][2] == 'reviewed-vm'
+
+@pytest.fixture
+def host_git(tmp_path, monkeypatch):
+    """Point git's global config at a temp file, so `git config --get` is synthetic."""
+    config = tmp_path / 'host-gitconfig'
+    config.write_text('')
+    monkeypatch.setenv('GIT_CONFIG_GLOBAL', str(config))
+    monkeypatch.setenv('GIT_CONFIG_NOSYSTEM', '1')
+    def set_identity(name, email):
+        subprocess.run(['git', 'config', '--file', str(config), 'user.name', name], check=True)
+        subprocess.run(['git', 'config', '--file', str(config), 'user.email', email], check=True)
+    return set_identity
+
+def identity_files(calls):
+    return [c['stdin'] for c in calls if c['stdin'].startswith('GIT_USER_NAME=')]
+
+def test_workspace_identity_wins_over_host_git(dispatch, host_git):
+    host_git('Host Person', 'host@example.com')
+    result, calls = dispatch('create', overrides=('--set', 'git_user_name', 'Jane Smith',
+                                                  '--set', 'git_user_email', 'jane@example.com'))
+    assert result.returncode == 0, result.stderr
+    assert identity_files(calls) == ['GIT_USER_NAME=Jane Smith\nGIT_USER_EMAIL=jane@example.com\n']
+    assert 'from this Mac' not in result.stdout
+
+def test_missing_workspace_identity_falls_back_to_host_git(dispatch, host_git):
+    host_git('Host Person', 'host@example.com')
+    result, calls = dispatch('create')
+    assert result.returncode == 0, result.stderr
+    assert identity_files(calls) == ['GIT_USER_NAME=Host Person\nGIT_USER_EMAIL=host@example.com\n']
+    assert "==> git identity: from this Mac's git config (Host Person <host@example.com>)" in result.stdout
+
+def test_each_key_falls_back_on_its_own(dispatch, host_git):
+    host_git('Host Person', 'host@example.com')
+    result, calls = dispatch('create', overrides=('--set', 'git_user_name', 'Jane Smith'))
+    assert result.returncode == 0, result.stderr
+    assert identity_files(calls) == ['GIT_USER_NAME=Jane Smith\nGIT_USER_EMAIL=host@example.com\n']
+
+def test_both_empty_still_skips_identity_file_and_warns(dispatch, host_git):
+    result, calls = dispatch('create')
+    assert result.returncode == 0, result.stderr
+    assert identity_files(calls) == []
+    assert 'both git_user_name and git_user_email are blank' in result.stdout
+    assert 'from this Mac' not in result.stdout

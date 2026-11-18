@@ -170,6 +170,20 @@ create:
     # impression that identity was configured when both fields are blank.
     GIT_USER_NAME={{ quote(git_user_name) }}
     GIT_USER_EMAIL={{ quote(git_user_email) }}
+    # Values missing from workspace.yml fall back to this Mac's git config, so a
+    # shared workspace repo does not have to hold one person's identity.
+    GIT_FROM_HOST=""
+    if [ -z "$GIT_USER_NAME" ]; then
+      GIT_USER_NAME=$(git config --get user.name 2>/dev/null || true)
+      [ -n "$GIT_USER_NAME" ] && GIT_FROM_HOST=1
+    fi
+    if [ -z "$GIT_USER_EMAIL" ]; then
+      GIT_USER_EMAIL=$(git config --get user.email 2>/dev/null || true)
+      [ -n "$GIT_USER_EMAIL" ] && GIT_FROM_HOST=1
+    fi
+    if [ -n "$GIT_FROM_HOST" ]; then
+      echo "==> git identity: from this Mac's git config ($GIT_USER_NAME <$GIT_USER_EMAIL>)"
+    fi
     if [ -n "$GIT_USER_NAME" ] || [ -n "$GIT_USER_EMAIL" ]; then
       printf 'GIT_USER_NAME=%s\nGIT_USER_EMAIL=%s\n' "$GIT_USER_NAME" "$GIT_USER_EMAIL" \
         | limactl shell "$NAME" -- bash -c 'cat > ~/.floatie-git-identity; chmod 600 ~/.floatie-git-identity'
