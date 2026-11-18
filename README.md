@@ -52,8 +52,9 @@ brew install lima just        # Git and Python 3 come with: xcode-select --insta
    cp .env.secrets.example .env.secrets && chmod 600 .env.secrets
    ```
 
-   Edit `workspace.yml`: name the VM, set your Git name and email, and list your
-   repositories. For private repositories, put a GitHub token in `.env.secrets`.
+   Edit `workspace.yml`: name the VM and list your repositories. Your Git name
+   and email are optional: when `workspace.yml` leaves them out, Floatie uses the
+   ones from your Mac's git config. For private repositories, put a GitHub token in `.env.secrets`.
 
 3. **Create the VM.** Run every `floatie` command from the workspace directory.
 
@@ -113,6 +114,8 @@ repos:
   - github.com/my-org/api
   - github.com/my-org/web
 ```
+
+The two `git_user_*` lines are optional and override your Mac's git identity; leave them out to use it.
 
 After you change workspace files, `floatie reload` copies instructions, skills,
 MCP servers and `stack/` into the running VM. It replaces the copies in the VM.

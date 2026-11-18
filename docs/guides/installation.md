@@ -50,7 +50,7 @@ Every name in the starter is an example. Replace them with your own.
 |---|---|
 | `name` | Name of the VM. It must be unique on your Mac. |
 | `cpus`, `memory` | Size of the VM, for example `4` and `8GiB`. |
-| `git_user_name`, `git_user_email` | Author of the commits made in the VM. The email must be verified on your GitHub account, or GitHub shows the commits as unverified. |
+| `git_user_name`, `git_user_email` | Optional. Author of the commits made in the VM. When a key is missing or empty, Floatie uses `git config user.name` / `user.email` from the Mac where you run `floatie`. The email must be verified on your GitHub account, or GitHub shows the commits as unverified (and signed commits fail). |
 | `repos` | Repositories to clone to `~/work/<repo>`. |
 | `egress` | Extra domains the VM may reach. Anthropic, OpenAI, GitHub, npm, PyPI, Docker registries and Ubuntu packages are allowed already. |
 | `plugins` | Claude Code plugin marketplaces and plugins to install. |
